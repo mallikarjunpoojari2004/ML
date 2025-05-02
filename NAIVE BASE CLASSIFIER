@@ -1,0 +1,69 @@
+import csv
+import math
+import random
+import statistics
+
+def cal_probability(x, mean, stdev):
+    exponent = math.exp(-(math.pow(x - mean, 2) / (2 * math.pow(stdev, 2))))
+    return (1 / (math.sqrt(2 * math.pi) * stdev)) * exponent
+
+dataset = []
+with open('naive.csv') as csvfile:
+    lines = csv.reader(csvfile)
+    for row in lines:
+        dataset.append([float(attr) for attr in row])
+
+dataset_size = len(dataset)
+print("Size of dataset is:", dataset_size)
+
+train_size = int(0.7 * dataset_size)
+print("Training size:", train_size)
+
+X_train = []
+X_test = dataset.copy()
+
+training_indexes = random.sample(range(dataset_size), train_size)
+for i in training_indexes:
+    X_train.append(dataset[i])
+    X_test.remove(dataset[i])
+
+classes = {}
+for sample in X_train:
+    class_label = int(sample[-1])
+    if class_label not in classes:
+        classes[class_label] = []
+    classes[class_label].append(sample)
+
+summaries = {}
+for class_value, training_data in classes.items():
+    summary = [(statistics.mean(attr), statistics.stdev(attr)) for attr in zip(*training_data)]
+    del summary[-1]  # Remove class label stats
+    summaries[class_value] = summary
+
+X_prediction = []
+for i in X_test:
+    probabilities = {}
+    for class_value, class_summary in summaries.items():
+        probabilities[class_value] = 1
+        for index, attr in enumerate(class_summary):
+            probabilities[class_value] *= cal_probability(i[index], attr[0], attr[1])
+
+    best_label, best_prob = None, -1
+    for class_value, probability in probabilities.items():
+        if best_label is None or probability > best_prob:
+            best_prob = probability
+            best_label = class_value
+    X_prediction.append(best_label)
+
+correct = 0
+for index in range(len(X_test)):
+    if int(X_test[index][-1]) == X_prediction[index]:
+        correct += 1
+
+print("Accuracy: ",correct/(float(len(X_test)))*100)
+
+
+////out put//
+Size of dataset is: 768
+Training size: 537
+Accuracy:  77.92207792207793
